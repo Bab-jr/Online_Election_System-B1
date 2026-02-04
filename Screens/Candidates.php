@@ -42,6 +42,9 @@ if ($migrationNeeded && $electionId) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $electionStatus === 'Preparing') {
     if (isset($_POST['action'])) {
         $changed = false;
+        $logAction = "";
+        $logDetails = "";
+
         if ($_POST['action'] === 'add_position' && !empty($_POST['new_position'])) {
             $newPosName = trim($_POST['new_position']);
             $newPosType = $_POST['position_type'] ?? 'Uniform';
@@ -54,26 +57,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $electionStatus === 'Preparing') {
             if (!$exists) {
                 $electionPositions[] = ['name' => $newPosName, 'type' => $newPosType];
                 $changed = true;
+                $logAction = "Add Position";
+                $logDetails = "Added new position: $newPosName ($newPosType)";
             }
         } elseif ($_POST['action'] === 'remove_position') {
             $posNameToRemove = $_POST['position'];
             $electionPositions = array_values(array_filter($electionPositions, fn($p) => $p['name'] !== $posNameToRemove));
             $changed = true;
+            $logAction = "Remove Position";
+            $logDetails = "Removed position: $posNameToRemove";
         } elseif ($_POST['action'] === 'add_party' && !empty($_POST['new_party'])) {
             $newParty = trim($_POST['new_party']);
             if (!in_array($newParty, $electionParties)) {
                 $electionParties[] = $newParty;
                 $changed = true;
+                $logAction = "Add Party";
+                $logDetails = "Added new political party: $newParty";
             }
         } elseif ($_POST['action'] === 'remove_party') {
             $partyToRemove = $_POST['party'];
             $electionParties = array_values(array_filter($electionParties, fn($p) => $p !== $partyToRemove));
             $changed = true;
+            $logAction = "Remove Party";
+            $logDetails = "Removed political party: $partyToRemove";
         }
 
         if ($changed) {
             $stmt = $db->prepare("UPDATE Election_History SET Parties = ?, Positions = ? WHERE Election_ID = ?");
             $stmt->execute([json_encode($electionParties), json_encode($electionPositions), $electionId]);
+            
+            // Log to Audit Trail
+            $Auth->Log_Action($_SESSION['User_ID'], $_SESSION['User_Role'], $logAction, $logDetails);
+            
             header("Location: Candidates.php");
             exit;
         }
@@ -156,8 +171,7 @@ $candidatesList = $stmt->fetchAll();
             color: var(--Primary_Color);
             display: flex;
             justify-content: center;
-            align-items: center;
-            font-weight: 700;
+            align-items: center; font-weight: 700;
             overflow: hidden;
             object-fit: cover;
         }
@@ -229,7 +243,7 @@ $candidatesList = $stmt->fetchAll();
         <aside class="Sidebar">
             <div class="Sidebar_Header">
                 <div class="Logo_Text">
-                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">ElectionSystem</div>
+                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">Click to Vote</div>
                     <div class="Logo_Subtitle">Administrator Portal</div>
                 </div>
             </div>
@@ -249,8 +263,11 @@ $candidatesList = $stmt->fetchAll();
                 <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
-                <a href="Audit_Trail.html" class="Nav_Item">
+                <a href="Audit_Trail.php" class="Nav_Item">
                     <i class="fas fa-file-alt"></i> Reports & Audit
+                </a>
+                <a href="Credits.php" class="Nav_Item">
+                    <i class="fas fa-info-circle"></i> Credits
                 </a>
             </nav>
             <div style="padding: 24px; border-top: 1px solid var(--Border_Color);">
@@ -373,8 +390,8 @@ $candidatesList = $stmt->fetchAll();
                                 <input type="email" name="email" class="Input" placeholder="juan@school.edu" required>
                             </div>
                             <div class="Form_Group">
-                                <label class="Label">User ID (Leave blank for random)</label>
-                                <input type="text" name="user_id" class="Input" placeholder="00-0000">
+                                <label class="Label">User ID</label>
+                                <input type="text" name="user_id" class="Input" placeholder="Leave blank for random">
                             </div>
                             <div class="Form_Group">
                                 <label class="Label">Position</label>
@@ -412,8 +429,8 @@ $candidatesList = $stmt->fetchAll();
                                 </select>
                             </div>
                             <div class="Form_Group">
-                                <label class="Label">Password (Leave blank for default)</label>
-                                <input type="password" name="password" class="Input" placeholder="Set password">
+                                <label class="Label">Password</label>
+                                <input type="password" name="password" class="Input" placeholder="Leave blank for default">
                             </div>
                             <div class="Form_Group">
                                 <label class="Label">Candidate Photo</label>

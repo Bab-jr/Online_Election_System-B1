@@ -13,7 +13,7 @@ $Auth->Check_Auth();
 </head>
 <body>
     <nav class="Dashboard_Navbar">
-        <div class="Logo"><strong>ElectionSystem</strong></div>
+        <div class="Logo"><strong>Click to Vote</strong></div>
         <div class="User_Info">
             <span><?php echo $_SESSION['User_Name']; ?> (Voter)</span>
             <a href="Logout.php" style="margin-left: 20px; font-size: 0.875rem;">Logout</a>

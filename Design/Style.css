@@ -11,6 +11,7 @@
     --Error_Color: #EF4444;
     --Overlay_Color: rgba(0, 0, 0, 0.65);
     --Sidebar_Width: 260px;
+    --Topbar_Height: 70px;
 }
 
 * {
@@ -317,8 +318,11 @@ body, html {
 }
 
 .Sidebar_Header {
-    padding: 24px;
+    height: var(--Topbar_Height);
+    padding: 0 24px;
     border-bottom: 1px solid var(--Border_Color);
+    display: flex;
+    align-items: center;
 }
 
 .Sidebar_Nav {
@@ -358,7 +362,7 @@ body, html {
 }
 
 .Top_Bar {
-    height: 70px;
+    height: var(--Topbar_Height);
     background: white;
     border-bottom: 1px solid var(--Border_Color);
     display: flex;
@@ -729,4 +733,15 @@ td {
     background: #4338CA;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* Navbar for Voting Screen */
+.Dashboard_Navbar {
+    height: var(--Topbar_Height);
+    background: white;
+    border-bottom: 1px solid var(--Border_Color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
 }

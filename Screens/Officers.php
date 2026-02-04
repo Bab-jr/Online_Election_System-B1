@@ -193,7 +193,7 @@ $totalOfficers = count($comeaOfficers);
         <aside class="Sidebar">
             <div class="Sidebar_Header">
                 <div class="Logo_Text">
-                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">ElectionSystem</div>
+                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">Click to Vote</div>
                     <div class="Logo_Subtitle">Administrator Portal</div>
                 </div>
             </div>
@@ -213,8 +213,11 @@ $totalOfficers = count($comeaOfficers);
                 <a href="Officers.php" class="Nav_Item Active">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
-                <a href="Audit_Trail.html" class="Nav_Item">
+                <a href="Audit_Trail.php" class="Nav_Item">
                     <i class="fas fa-file-alt"></i> Reports & Audit
+                </a>
+                <a href="Credits.php" class="Nav_Item">
+                    <i class="fas fa-info-circle"></i> Credits
                 </a>
             </nav>
             <div style="padding: 24px; border-top: 1px solid var(--Border_Color);">
@@ -284,8 +287,8 @@ $totalOfficers = count($comeaOfficers);
                                 <input type="email" name="email" class="Input" placeholder="email@school.edu" required>
                             </div>
                             <div class="Form_Group">
-                                <label class="Label">User ID (Leave blank for random)</label>
-                                <input type="text" name="user_id" class="Input" placeholder="00-0000">
+                                <label class="Label">User ID</label>
+                                <input type="text" name="user_id" class="Input" placeholder="Leave blank for random">
                             </div>
                             <div class="Form_Group">
                                 <label class="Label">Role</label>
@@ -296,8 +299,8 @@ $totalOfficers = count($comeaOfficers);
                                 </select>
                             </div>
                             <div class="Form_Group">
-                                <label class="Label">Password (Leave blank for default)</label>
-                                <input type="password" name="password" class="Input" placeholder="Set password">
+                                <label class="Label">Password</label>
+                                <input type="password" name="password" class="Input" placeholder="Leave blank for default">
                             </div>
                             <div class="Form_Group" style="display: flex; align-items: flex-end;">
                                 <button type="submit" class="Button_Primary" style="margin-top: 0; width: 100%;">
@@ -448,8 +451,8 @@ $totalOfficers = count($comeaOfficers);
                     </select>
                 </div>
                 <div class="Form_Group" style="margin-top: 15px;">
-                    <label class="Label">New Password (Leave blank to keep current)</label>
-                    <input type="password" name="password" class="Input" placeholder="Enter new password">
+                    <label class="Label">New Password</label>
+                    <input type="password" name="password" class="Input" placeholder="Leave blank to keep current">
                 </div>
                 <button type="submit" class="Button_Primary" style="width: 100%; margin-top: 24px;">Update Officer</button>
             </form>

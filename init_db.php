@@ -39,6 +39,7 @@ try {
             Election_ID INT AUTO_INCREMENT PRIMARY KEY,
             Year INT,
             Parties TEXT,
+            Positions TEXT,
             Candidates TEXT,
             Results TEXT,
             Total_Voters INT,

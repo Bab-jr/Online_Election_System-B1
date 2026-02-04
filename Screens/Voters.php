@@ -122,7 +122,7 @@ $votersList = $stmt->fetchAll();
         <aside class="Sidebar">
             <div class="Sidebar_Header">
                 <div class="Logo_Text">
-                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">ElectionSystem</div>
+                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">Click to Vote</div>
                     <div class="Logo_Subtitle">Administrator Portal</div>
                 </div>
             </div>
@@ -142,8 +142,11 @@ $votersList = $stmt->fetchAll();
                 <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
-                <a href="Audit_Trail.html" class="Nav_Item">
+                <a href="Audit_Trail.php" class="Nav_Item">
                     <i class="fas fa-file-alt"></i> Reports & Audit
+                </a>
+                <a href="Credits.php" class="Nav_Item">
+                    <i class="fas fa-info-circle"></i> Credits
                 </a>
             </nav>
             <div style="padding: 24px; border-top: 1px solid var(--Border_Color);">
@@ -254,7 +257,7 @@ $votersList = $stmt->fetchAll();
                     <button class="Button_Primary Voter_Actions_Btn" onclick="openAddModal()">
                         <i class="fas fa-plus"></i> Add Voter
                     </button>
-                    <button class="Button_Secondary Voter_Actions_Btn">
+                    <button class="Button_Secondary Voter_Actions_Btn" onclick="openImportModal()">
                         <i class="fas fa-file-import"></i> Import CSV
                     </button>
                 </div>
@@ -358,7 +361,7 @@ $votersList = $stmt->fetchAll();
         <div class="Modal_Content">
             <div class="Modal_Header">
                 <h2 class="Modal_Title">Add New Voter</h2>
-                <span class="Modal_Close" onclick="closeModal()">&times;</span>
+                <span class="Modal_Close" onclick="closeModal('AddModal')">&times;</span>
             </div>
             <form action="../Logic/Backend/Add_Voter_Handler.php" method="POST">
                 <div class="Form_Group">
@@ -366,8 +369,8 @@ $votersList = $stmt->fetchAll();
                     <input type="email" name="email" class="Input" placeholder="voter@school.edu" required>
                 </div>
                 <div class="Form_Group" style="margin-top: 15px;">
-                    <label class="Label">User ID (Leave blank for random)</label>
-                    <input type="text" name="user_id" class="Input" placeholder="00-0000">
+                    <label class="Label">User ID</label>
+                    <input type="text" name="user_id" class="Input" placeholder="Leave blank for random">
                 </div>
                 <div class="Form_Group" style="margin-top: 15px;">
                     <label class="Label">Track / Strand</label>
@@ -385,10 +388,31 @@ $votersList = $stmt->fetchAll();
                     <input type="text" name="section" class="Input" placeholder="e.g. A" required>
                 </div>
                 <div class="Form_Group" style="margin-top: 15px;">
-                    <label class="Label">Password (Leave blank for default)</label>
-                    <input type="password" name="password" class="Input" placeholder="Set password">
+                    <label class="Label">Password</label>
+                    <input type="password" name="password" class="Input" placeholder="Leave blank for default">
                 </div>
                 <button type="submit" class="Button_Primary" style="width: 100%; margin-top: 24px;">Save Voter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div id="ImportModal" class="Modal">
+        <div class="Modal_Content">
+            <div class="Modal_Header">
+                <h2 class="Modal_Title">Import Voters via CSV</h2>
+                <span class="Modal_Close" onclick="closeModal('ImportModal')">&times;</span>
+            </div>
+            <p class="Text_Muted" style="margin-bottom: 20px; font-size: 0.85rem;">
+                Upload a CSV file with the following headers: <br>
+                <strong>User_ID, Email, Track_Cluster, Grade_Level, Section, Password</strong>
+            </p>
+            <form action="../Logic/Backend/Import_Voters_Handler.php" method="POST" enctype="multipart/form-data">
+                <div class="Form_Group">
+                    <label class="Label">Select CSV File</label>
+                    <input type="file" name="csv_file" class="Input" accept=".csv" required>
+                </div>
+                <button type="submit" class="Button_Primary" style="width: 100%; margin-top: 24px;">Upload & Import</button>
             </form>
         </div>
     </div>
@@ -397,15 +421,17 @@ $votersList = $stmt->fetchAll();
         function openAddModal() {
             document.getElementById('AddModal').style.display = 'flex';
         }
-
-        function closeModal() {
-            document.getElementById('AddModal').style.display = 'none';
+        function openImportModal() {
+            document.getElementById('ImportModal').style.display = 'flex';
+        }
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            if (event.target == document.getElementById('AddModal')) {
-                closeModal();
+            if (event.target.classList.contains('Modal')) {
+                event.target.style.display = 'none';
             }
         }
     </script>

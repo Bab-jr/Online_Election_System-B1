@@ -12,12 +12,66 @@ if ($_SESSION['Access_Level'] < 1) {
 
 $db = db();
 
+// Handle New Election Creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_election'])) {
+    $year = $_POST['election_year'] ?? date('Y');
+    
+    // Default configuration for a new election
+    $defaultParties = json_encode(['Independent']);
+    $defaultPositions = json_encode([
+        ['name' => 'President', 'type' => 'Uniform'],
+        ['name' => 'Vice President', 'type' => 'Uniform'],
+        ['name' => 'Secretary', 'type' => 'Uniform'],
+        ['name' => 'Treasurer', 'type' => 'Uniform']
+    ]);
+    
+    $startDate = date('Y-m-d H:i:s');
+    $endDate = date('Y-m-d H:i:s', strtotime('+7 days'));
+    
+    try {
+        $stmt = $db->prepare("INSERT INTO Election_History (Year, Parties, Positions, Status, Start_Date, End_Date, Total_Voters) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$year, $defaultParties, $defaultPositions, 'Preparing', $startDate, $endDate, 0]);
+        
+        $Auth->Log_Action($_SESSION['User_ID'], $_SESSION['User_Role'], 'Create New Election', "Created a new election for School Year $year");
+        
+        header("Location: Election_Dashboard.php?success=New election created successfully");
+        exit;
+    } catch (Exception $e) {
+        header("Location: Election_Dashboard.php?error=Error creating election: " . $e->getMessage());
+        exit;
+    }
+}
+
 // Handle Status Change
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $newStatus = $_POST['new_status'];
     $electionId = $_POST['election_id'];
-    $stmt = $db->prepare("UPDATE Election_History SET Status = ? WHERE Election_ID = ?");
-    $stmt->execute([$newStatus, $electionId]);
+    
+    // Fetch current status
+    $currentElectionStmt = $db->prepare("SELECT * FROM Election_History WHERE Election_ID = ?");
+    $currentElectionStmt->execute([$electionId]);
+    $electionData = $currentElectionStmt->fetch();
+    
+    if ($newStatus === 'Finished') {
+        // Save current details to history record
+        $totalVoters = $db->query("SELECT COUNT(*) FROM Voters")->fetchColumn();
+        $votedCount = $db->query("SELECT COUNT(*) FROM Voters WHERE Has_Voted = 1")->fetchColumn();
+        
+        // Fetch Candidates and potentially calculate results if there was a voting table
+        $candidates = $db->query("SELECT Name, Position, Party FROM Candidates")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmt = $db->prepare("UPDATE Election_History SET Status = ?, Total_Voters = ?, Results = ? WHERE Election_ID = ?");
+        $stmt->execute([$newStatus, $totalVoters, json_encode($candidates), $electionId]);
+    } else {
+        $stmt = $db->prepare("UPDATE Election_History SET Status = ? WHERE Election_ID = ?");
+        $stmt->execute([$newStatus, $electionId]);
+    }
+    
+    // Log to Audit Trail
+    $year = $electionData['Year'] ?? 'Unknown';
+    $oldStatus = $electionData['Status'] ?? 'Unknown';
+    $Auth->Log_Action($_SESSION['User_ID'], $_SESSION['User_Role'], 'Update Election Status', "Changed SY $year Election status from $oldStatus to $newStatus");
+    
     header("Location: Election_Dashboard.php");
     exit;
 }
@@ -50,6 +104,45 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
         .Status_Active, .Status_Ongoing { background: #DCFCE7; color: #166534; }
         .Status_Preparing { background: #FEF3C7; color: #92400E; }
         .Status_Completed, .Status_Finished { background: #F1F5F9; color: #475569; }
+
+        /* Modal Styles */
+        .Modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .Modal_Content {
+            background: white;
+            padding: 32px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        .Modal_Header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .Modal_Title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .Modal_Close {
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--Text_Secondary);
+        }
     </style>
 </head>
 <body>
@@ -58,7 +151,7 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
         <aside class="Sidebar">
             <div class="Sidebar_Header">
                 <div class="Logo_Text">
-                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">ElectionSystem</div>
+                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">Click to Vote</div>
                     <div class="Logo_Subtitle">Administrator Portal</div>
                 </div>
             </div>
@@ -78,8 +171,11 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
                 <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
-                <a href="Audit_Trail.html" class="Nav_Item">
+                <a href="Audit_Trail.php" class="Nav_Item">
                     <i class="fas fa-file-alt"></i> Reports & Audit
+                </a>
+                <a href="Credits.php" class="Nav_Item">
+                    <i class="fas fa-info-circle"></i> Credits
                 </a>
             </nav>
             <div style="padding: 24px; border-top: 1px solid var(--Border_Color);">
@@ -112,6 +208,17 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
 
             <!-- Content Body -->
             <div class="Content_Body">
+                <?php if (isset($_GET['success'])): ?>
+                    <div class="Badge Badge_Success" style="width: 100%; padding: 15px; margin-bottom: 20px; text-align: center;">
+                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($_GET['success']); ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="Badge" style="width: 100%; padding: 15px; margin-bottom: 20px; text-align: center; background: #FEE2E2; color: #EF4444;">
+                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($_GET['error']); ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="Page_Title_Section">
                     <h1 class="Page_Title">Election Dashboard</h1>
                     <p class="Page_Subtitle">Welcome back! Here's what's happening with the current elections.</p>
@@ -142,7 +249,7 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
                     <div class="Card">
                         <div class="Card_Header">
                             <h2 class="Card_Title">Active & Upcoming Elections</h2>
-                            <button class="Button_Primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
+                            <button onclick="openNewElectionModal()" class="Button_Primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
                                 <i class="fas fa-plus"></i> New Election
                             </button>
                         </div>
@@ -160,7 +267,7 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
                                    <?php if (empty($activeElections)): ?>
                                    <tr>
                                        <td colspan="4" style="text-align: center; padding: 40px; color: var(--Text_Secondary);">
-                                           No active elections found. <a href="#" style="color: var(--Primary_Color); font-weight: 600;">Create one now.</a>
+                                           No active elections found. <a href="javascript:void(0)" onclick="openNewElectionModal()" style="color: var(--Primary_Color); font-weight: 600;">Create one now.</a>
                                        </td>
                                    </tr>
                                    <?php else: ?>
@@ -195,5 +302,37 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('
             </div>
         </main>
     </div>
+
+    <!-- New Election Modal -->
+    <div id="NewElectionModal" class="Modal">
+        <div class="Modal_Content">
+            <div class="Modal_Header">
+                <h2 class="Modal_Title">Create New Election</h2>
+                <span class="Modal_Close" onclick="closeNewElectionModal()">&times;</span>
+            </div>
+            <form method="POST">
+                <div class="Form_Group">
+                    <label class="Label">School Year</label>
+                    <input type="number" name="election_year" class="Input" value="<?php echo date('Y'); ?>" min="2000" max="2100" required>
+                    <p class="Text_Muted" style="font-size: 0.75rem; margin-top: 5px;">Example: 2026 for SY 2026-2027</p>
+                </div>
+                <button type="submit" name="create_election" class="Button_Primary" style="width: 100%; margin-top: 24px;">Initialize Election</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openNewElectionModal() {
+            document.getElementById('NewElectionModal').style.display = 'flex';
+        }
+        function closeNewElectionModal() {
+            document.getElementById('NewElectionModal').style.display = 'none';
+        }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('NewElectionModal')) {
+                closeNewElectionModal();
+            }
+        }
+    </script>
 </body>
 </html>

@@ -15,11 +15,6 @@ $db = db();
 // Fetch all completed elections
 $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetchAll();
 
-// For each election, we might want to fetch more detailed stats if they were stored.
-// Since it's a history page, we'll mock some of the breakdown data if it's not in the DB,
-// or calculate it based on current voters if we assume the voter list represents the latest.
-// In a real system, these would be snapshots.
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -43,7 +38,7 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
         <aside class="Sidebar">
             <div class="Sidebar_Header">
                 <div class="Logo_Text">
-                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">ElectionSystem</div>
+                    <div class="Logo_Title" style="font-size: 1.1rem; color: var(--Primary_Color);">Click to Vote</div>
                     <div class="Logo_Subtitle">Administrator Portal</div>
                 </div>
             </div>
@@ -63,8 +58,11 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
                 <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
-                <a href="Audit_Trail.html" class="Nav_Item">
+                <a href="Audit_Trail.php" class="Nav_Item">
                     <i class="fas fa-file-alt"></i> Reports & Audit
+                </a>
+                <a href="Credits.php" class="Nav_Item">
+                    <i class="fas fa-info-circle"></i> Credits
                 </a>
             </nav>
             <div style="padding: 24px; border-top: 1px solid var(--Border_Color);">
@@ -123,7 +121,10 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
                         <div class="Accordion_Item <?php echo $index === 0 ? 'Active' : ''; ?>" id="year-<?php echo $item['Year']; ?>">
                             <div class="Accordion_Header">
                                 <h3>School Year <?php echo $item['Year']; ?>–<?php echo $item['Year']+1; ?></h3>
-                                <i class="fas fa-chevron-down Accordion_Icon"></i>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="Badge <?php echo $item['Status'] === 'Finished' ? 'Badge_Success' : 'Badge_Warning'; ?>"><?php echo $item['Status']; ?></span>
+                                    <i class="fas fa-chevron-down Accordion_Icon"></i>
+                                </div>
                             </div>
                             <div class="Accordion_Content">
                                 <!-- Stats Overview -->
@@ -131,26 +132,12 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
                                     <div class="Stat_Card">
                                         <div class="Stat_Label">Total Voters</div>
                                         <div class="Stat_Value"><?php echo $item['Total_Voters']; ?></div>
-                                        <div class="Stat_Trend">100%</div>
                                     </div>
                                     <div class="Stat_Card">
-                                        <div class="Stat_Label">Have Voted</div>
-                                        <?php 
-                                            // Mocking these values for historical data as requested by UI
-                                            $voted = round($item['Total_Voters'] * 0.789); 
-                                            $votedPercent = 78.9;
-                                        ?>
-                                        <div class="Stat_Value"><?php echo $voted; ?></div>
-                                        <div class="Stat_Trend Trend_Up"><?php echo $votedPercent; ?>%</div>
-                                    </div>
-                                    <div class="Stat_Card">
-                                        <div class="Stat_Label">Did Not Vote</div>
-                                        <?php 
-                                            $notVoted = $item['Total_Voters'] - $voted;
-                                            $notVotedPercent = 100 - $votedPercent;
-                                        ?>
-                                        <div class="Stat_Value"><?php echo $notVoted; ?></div>
-                                        <div class="Stat_Trend Trend_Down"><?php echo $notVotedPercent; ?>%</div>
+                                        <div class="Stat_Label">Election Period</div>
+                                        <div style="font-size: 1rem; font-weight: 600;">
+                                            <?php echo date('M d, Y', strtotime($item['Start_Date'])); ?> to <?php echo date('M d, Y', strtotime($item['End_Date'])); ?>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -158,50 +145,34 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
                                 <div class="Dashboard_Grid" style="grid-template-columns: 1fr; gap: 24px;">
                                     <div class="Card" style="padding: 0; box-shadow: none; border: 1px solid var(--Border_Color);">
                                         <div class="Card_Header" style="padding: 20px 24px; margin-bottom: 0; border-bottom: 1px solid var(--Border_Color);">
-                                            <h4 class="Card_Title" style="font-size: 1rem;">Voters by Track / Strand</h4>
-                                        </div>
-                                        <div class="Data_List" style="padding: 0 24px;">
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">STEM</div>
-                                                <div class="Data_Value">60</div>
-                                            </div>
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">ABM</div>
-                                                <div class="Data_Value">40</div>
-                                            </div>
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">HUMSS</div>
-                                                <div class="Data_Value">45</div>
-                                            </div>
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">TVL</div>
-                                                <div class="Data_Value">35</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="Card" style="padding: 0; box-shadow: none; border: 1px solid var(--Border_Color);">
-                                        <div class="Card_Header" style="padding: 20px 24px; margin-bottom: 0; border-bottom: 1px solid var(--Border_Color);">
-                                            <h4 class="Card_Title" style="font-size: 1rem;">Voters by Grade Level</h4>
-                                        </div>
-                                        <div class="Data_List" style="padding: 0 24px;">
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">Grade 11</div>
-                                                <div class="Data_Value">95</div>
-                                            </div>
-                                            <div class="Data_Row">
-                                                <div class="Data_Label">Grade 12</div>
-                                                <div class="Data_Value">85</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="Card" style="padding: 0; box-shadow: none; border: 1px solid var(--Border_Color);">
-                                        <div class="Card_Header" style="padding: 20px 24px; margin-bottom: 0; border-bottom: 1px solid var(--Border_Color);">
                                             <h4 class="Card_Title" style="font-size: 1rem;">Candidate Results</h4>
                                         </div>
-                                        <div style="padding: 24px; text-align: center; color: var(--Text_Secondary);">
-                                            Detailed candidate performance data for this year.
+                                        <div class="Table_Wrapper">
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Candidate Name</th>
+                                                        <th>Position</th>
+                                                        <th>Party</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php 
+                                                    $results = json_decode($item['Results'] ?? '[]', true) ?: [];
+                                                    if (empty($results)):
+                                                    ?>
+                                                        <tr><td colspan="3" style="text-align: center; padding: 20px;">No detailed results saved for this election.</td></tr>
+                                                    <?php else: ?>
+                                                        <?php foreach ($results as $candidate): ?>
+                                                            <tr>
+                                                                <td style="font-weight: 600;"><?php echo htmlspecialchars($candidate['Name']); ?></td>
+                                                                <td><?php echo htmlspecialchars($candidate['Position']); ?></td>
+                                                                <td><?php echo htmlspecialchars($candidate['Party']); ?></td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
