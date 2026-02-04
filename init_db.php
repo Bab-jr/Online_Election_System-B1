@@ -62,7 +62,7 @@ try {
 
     // Insert default admin (Password: Admin123)
     $stmt = $pdo->prepare("INSERT IGNORE INTO Officers (User_ID, Role, Access_Level, Email, Password, Name) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute(['ADMIN-001', 'Admin', 3, 'admin@school.edu', password_hash('Admin123', PASSWORD_DEFAULT), 'System Administrator']);
+    $stmt->execute(['00-0000', 'Admin', 3, 'admin@school.edu', password_hash('Admin123', PASSWORD_DEFAULT), 'System Administrator']);
 
     echo "Database initialized successfully.\n";
 

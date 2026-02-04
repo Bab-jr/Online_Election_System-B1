@@ -10,14 +10,25 @@ if ($_SESSION['Access_Level'] < 1) {
     exit;
 }
 
-// Fetch Stats
 $db = db();
+
+// Handle Status Change
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $newStatus = $_POST['new_status'];
+    $electionId = $_POST['election_id'];
+    $stmt = $db->prepare("UPDATE Election_History SET Status = ? WHERE Election_ID = ?");
+    $stmt->execute([$newStatus, $electionId]);
+    header("Location: Election_Dashboard.php");
+    exit;
+}
+
+// Fetch Stats
 $totalVoters = $db->query("SELECT COUNT(*) FROM Voters")->fetchColumn();
 $totalCandidates = $db->query("SELECT COUNT(*) FROM Candidates")->fetchColumn();
 $totalVotes = $db->query("SELECT COUNT(*) FROM Voters WHERE Has_Voted = 1")->fetchColumn();
 
-// Fetch Active Elections
-$activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Active' ORDER BY Start_Date DESC")->fetchAll();
+// Fetch Active/Preparing/Ongoing Elections
+$activeElections = $db->query("SELECT * FROM Election_History WHERE Status IN ('Preparing', 'Ongoing', 'Active') ORDER BY Start_Date DESC")->fetchAll();
 
 ?>
 <!DOCTYPE html>
@@ -28,6 +39,18 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Ac
     <title>Election Dashboard | Online School Election System</title>
     <link rel="stylesheet" href="../Design/Style.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .Status_Badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .Status_Active, .Status_Ongoing { background: #DCFCE7; color: #166534; }
+        .Status_Preparing { background: #FEF3C7; color: #92400E; }
+        .Status_Completed, .Status_Finished { background: #F1F5F9; color: #475569; }
+    </style>
 </head>
 <body>
     <div class="Dashboard_Container">
@@ -49,10 +72,10 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Ac
                 <a href="Voters.php" class="Nav_Item">
                     <i class="fas fa-users"></i> Voter Management
                 </a>
-                <a href="Candidates.html" class="Nav_Item">
+                <a href="Candidates.php" class="Nav_Item">
                     <i class="fas fa-user-tie"></i> Candidate Management
                 </a>
-                <a href="Officers.html" class="Nav_Item">
+                <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
                 <a href="Audit_Trail.html" class="Nav_Item">
@@ -118,7 +141,7 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Ac
                     <!-- Main Content: Active Elections -->
                     <div class="Card">
                         <div class="Card_Header">
-                            <h2 class="Card_Title">Active Elections</h2>
+                            <h2 class="Card_Title">Active & Upcoming Elections</h2>
                             <button class="Button_Primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
                                 <i class="fas fa-plus"></i> New Election
                             </button>
@@ -128,16 +151,15 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Ac
                                <thead>
                                    <tr>
                                        <th>Election Title</th>
-                                       <th>Start Date</th>
-                                       <th>End Date</th>
+                                       <th>Period</th>
                                        <th>Status</th>
-                                       <th>Actions</th>
+                                       <th>Quick Actions</th>
                                    </tr>
                                </thead>
                                <tbody>
                                    <?php if (empty($activeElections)): ?>
                                    <tr>
-                                       <td colspan="5" style="text-align: center; padding: 40px; color: var(--Text_Secondary);">
+                                       <td colspan="4" style="text-align: center; padding: 40px; color: var(--Text_Secondary);">
                                            No active elections found. <a href="#" style="color: var(--Primary_Color); font-weight: 600;">Create one now.</a>
                                        </td>
                                    </tr>
@@ -145,12 +167,22 @@ $activeElections = $db->query("SELECT * FROM Election_History WHERE Status = 'Ac
                                        <?php foreach ($activeElections as $election): ?>
                                        <tr>
                                            <td style="font-weight: 600;">School Year <?php echo $election['Year']; ?> Election</td>
-                                           <td><?php echo date('M d, Y', strtotime($election['Start_Date'])); ?></td>
-                                           <td><?php echo date('M d, Y', strtotime($election['End_Date'])); ?></td>
-                                           <td><span class="Badge Badge_Success">Active</span></td>
+                                           <td><?php echo date('M d', strtotime($election['Start_Date'])); ?> - <?php echo date('M d, Y', strtotime($election['End_Date'])); ?></td>
                                            <td>
-                                               <a href="#" style="color: var(--Primary_Color); margin-right: 12px;"><i class="fas fa-eye"></i></a>
-                                               <a href="#" style="color: var(--Secondary_Color);"><i class="fas fa-cog"></i></a>
+                                               <span class="Status_Badge Status_<?php echo $election['Status']; ?>">
+                                                   <?php echo $election['Status']; ?>
+                                               </span>
+                                           </td>
+                                           <td>
+                                               <form method="POST" style="display: inline-flex; gap: 8px; align-items: center;">
+                                                   <input type="hidden" name="election_id" value="<?php echo $election['Election_ID']; ?>">
+                                                   <select name="new_status" class="Select" style="font-size: 0.75rem; padding: 4px 8px;">
+                                                       <option value="Preparing" <?php echo $election['Status'] == 'Preparing' ? 'selected' : ''; ?>>Preparing</option>
+                                                       <option value="Ongoing" <?php echo $election['Status'] == 'Ongoing' ? 'selected' : ''; ?>>Ongoing</option>
+                                                       <option value="Finished" <?php echo $election['Status'] == 'Finished' ? 'selected' : ''; ?>>Finished</option>
+                                                   </select>
+                                                   <button type="submit" name="update_status" class="Button_Primary" style="width: auto; padding: 6px 10px; margin-top: 0; font-size: 0.7rem;">Update</button>
+                                               </form>
                                            </td>
                                        </tr>
                                        <?php endforeach; ?>

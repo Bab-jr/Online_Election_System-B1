@@ -57,10 +57,10 @@ $history = $db->query("SELECT * FROM Election_History ORDER BY Year DESC")->fetc
                 <a href="Voters.php" class="Nav_Item">
                     <i class="fas fa-users"></i> Voter Management
                 </a>
-                <a href="Candidates.html" class="Nav_Item">
+                <a href="Candidates.php" class="Nav_Item">
                     <i class="fas fa-user-tie"></i> Candidate Management
                 </a>
-                <a href="Officers.html" class="Nav_Item">
+                <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
                 <a href="Audit_Trail.html" class="Nav_Item">

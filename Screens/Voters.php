@@ -63,6 +63,58 @@ $votersList = $stmt->fetchAll();
     <title>Voter Management | Online School Election System</title>
     <link rel="stylesheet" href="../Design/Style.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .Voter_Actions_Btn {
+            height: 44px;
+            padding: 0 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            margin-top: 0;
+            width: auto;
+        }
+
+        /* Modal Styles */
+        .Modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .Modal_Content {
+            background: white;
+            padding: 32px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        .Modal_Header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .Modal_Title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .Modal_Close {
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--Text_Secondary);
+        }
+    </style>
 </head>
 <body>
     <div class="Dashboard_Container">
@@ -84,10 +136,10 @@ $votersList = $stmt->fetchAll();
                 <a href="Voters.php" class="Nav_Item Active">
                     <i class="fas fa-users"></i> Voter Management
                 </a>
-                <a href="Candidates.html" class="Nav_Item">
+                <a href="Candidates.php" class="Nav_Item">
                     <i class="fas fa-user-tie"></i> Candidate Management
                 </a>
-                <a href="Officers.html" class="Nav_Item">
+                <a href="Officers.php" class="Nav_Item">
                     <i class="fas fa-user-shield"></i> Officers Management
                 </a>
                 <a href="Audit_Trail.html" class="Nav_Item">
@@ -124,6 +176,17 @@ $votersList = $stmt->fetchAll();
 
             <!-- Content Body -->
             <div class="Content_Body">
+                <?php if (isset($_GET['success'])): ?>
+                    <div class="Badge Badge_Success" style="width: 100%; padding: 15px; margin-bottom: 20px; text-align: center;">
+                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($_GET['success']); ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="Badge" style="width: 100%; padding: 15px; margin-bottom: 20px; text-align: center; background: #FEE2E2; color: #EF4444;">
+                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($_GET['error']); ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="Page_Title_Section">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div style="width: 48px; height: 48px; background: var(--Primary_Light); color: var(--Primary_Color); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 1.5rem;">
@@ -188,64 +251,65 @@ $votersList = $stmt->fetchAll();
 
                 <!-- Actions -->
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 20px;">
-                    <button class="Button_Primary" style="width: auto; padding: 10px 20px;">
+                    <button class="Button_Primary Voter_Actions_Btn" onclick="openAddModal()">
                         <i class="fas fa-plus"></i> Add Voter
                     </button>
-                    <button class="Button_Secondary" style="width: auto; padding: 10px 20px;">
+                    <button class="Button_Secondary Voter_Actions_Btn">
                         <i class="fas fa-file-import"></i> Import CSV
                     </button>
                 </div>
 
-                <!-- Filters -->
-                <form method="GET" class="Filter_Bar">
-                    <div class="Filter_Group">
-                        <label>Search</label>
-                        <div class="Search_Input_Wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" name="search" class="Input" placeholder="Search by email" value="<?php echo htmlspecialchars($search); ?>">
+                <!-- Table Card -->
+                <div class="Card" style="padding: 0; overflow: hidden;">
+                    <!-- Filters (Integrated into Card with Flex Layout) -->
+                    <form method="GET" class="Filter_Bar" style="display: flex; flex-wrap: nowrap; gap: 20px; align-items: flex-end; background: transparent; border: none; border-bottom: 1px solid var(--Border_Color); border-radius: 0; margin-bottom: 0; padding: 24px;">
+                        <div class="Filter_Group" style="flex: 2;">
+                            <label>Search</label>
+                            <div class="Search_Input_Wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" name="search" class="Input" placeholder="Search by email" value="<?php echo htmlspecialchars($search); ?>">
+                            </div>
                         </div>
-                    </div>
-                    <div class="Filter_Group">
-                        <label>Track</label>
-                        <select name="track" class="Select" onchange="this.form.submit()">
-                            <option value="">All Tracks</option>
-                            <?php 
-                            $allTracks = $db->query("SELECT DISTINCT Track_Cluster FROM Voters WHERE Track_Cluster IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($allTracks as $t): ?>
-                                <option value="<?php echo htmlspecialchars($t); ?>" <?php echo $filterTrack == $t ? 'selected' : ''; ?>><?php echo htmlspecialchars($t); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="Filter_Group">
-                        <label>Grade</label>
-                        <select name="grade" class="Select" onchange="this.form.submit()">
-                            <option value="">All Grades</option>
-                            <?php 
-                            $allGrades = $db->query("SELECT DISTINCT Grade_Level FROM Voters WHERE Grade_Level IS NOT NULL ORDER BY Grade_Level")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($allGrades as $g): ?>
-                                <option value="<?php echo htmlspecialchars($g); ?>" <?php echo $filterGrade == $g ? 'selected' : ''; ?>>Grade <?php echo htmlspecialchars($g); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="Filter_Group">
-                        <label>Section</label>
-                        <select name="section" class="Select" onchange="this.form.submit()">
-                            <option value="">All Sections</option>
-                            <?php 
-                            $allSections = $db->query("SELECT DISTINCT Section FROM Voters WHERE Section IS NOT NULL ORDER BY Section")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($allSections as $s): ?>
-                                <option value="<?php echo htmlspecialchars($s); ?>" <?php echo $filterSection == $s ? 'selected' : ''; ?>><?php echo htmlspecialchars($s); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </form>
+                        <div class="Filter_Group" style="flex: 1;">
+                            <label>Track</label>
+                            <select name="track" class="Select" onchange="this.form.submit()" style="width: 100%;">
+                                <option value="">All Tracks</option>
+                                <?php 
+                                $allTracks = $db->query("SELECT DISTINCT Track_Cluster FROM Voters WHERE Track_Cluster IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($allTracks as $t): ?>
+                                    <option value="<?php echo htmlspecialchars($t); ?>" <?php echo $filterTrack == $t ? 'selected' : ''; ?>><?php echo htmlspecialchars($t); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="Filter_Group" style="flex: 1;">
+                            <label>Grade</label>
+                            <select name="grade" class="Select" onchange="this.form.submit()" style="width: 100%;">
+                                <option value="">All Grades</option>
+                                <?php 
+                                $allGrades = $db->query("SELECT DISTINCT Grade_Level FROM Voters WHERE Grade_Level IS NOT NULL ORDER BY Grade_Level")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($allGrades as $g): ?>
+                                    <option value="<?php echo htmlspecialchars($g); ?>" <?php echo $filterGrade == $g ? 'selected' : ''; ?>>Grade <?php echo htmlspecialchars($g); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="Filter_Group" style="flex: 1;">
+                            <label>Section</label>
+                            <select name="section" class="Select" onchange="this.form.submit()" style="width: 100%;">
+                                <option value="">All Sections</option>
+                                <?php 
+                                $allSections = $db->query("SELECT DISTINCT Section FROM Voters WHERE Section IS NOT NULL ORDER BY Section")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($allSections as $s): ?>
+                                    <option value="<?php echo htmlspecialchars($s); ?>" <?php echo $filterSection == $s ? 'selected' : ''; ?>><?php echo htmlspecialchars($s); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </form>
 
-                <!-- Table -->
-                <div class="Card" style="padding: 0;">
                     <div class="Table_Wrapper">
                         <table>
                             <thead>
                                 <tr>
+                                    <th>User ID</th>
                                     <th>Email</th>
                                     <th>Track</th>
                                     <th>Grade</th>
@@ -256,14 +320,15 @@ $votersList = $stmt->fetchAll();
                             <tbody>
                                 <?php if (empty($votersList)): ?>
                                 <tr>
-                                    <td colspan="5" style="text-align: center; padding: 40px; color: var(--Text_Secondary);">
+                                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--Text_Secondary);">
                                         No voters found matching your criteria.
                                     </td>
                                 </tr>
                                 <?php else: ?>
                                     <?php foreach ($votersList as $voter): ?>
                                     <tr>
-                                        <td style="font-weight: 600;"><?php echo htmlspecialchars($voter['Email']); ?></td>
+                                        <td style="font-weight: 600;"><?php echo htmlspecialchars($voter['User_ID']); ?></td>
+                                        <td><?php echo htmlspecialchars($voter['Email']); ?></td>
                                         <td><?php echo htmlspecialchars($voter['Track_Cluster'] ?: 'N/A'); ?></td>
                                         <td>Grade <?php echo htmlspecialchars($voter['Grade_Level'] ?: 'N/A'); ?></td>
                                         <td><?php echo htmlspecialchars($voter['Section'] ?: 'N/A'); ?></td>
@@ -287,5 +352,62 @@ $votersList = $stmt->fetchAll();
             </div>
         </main>
     </div>
+
+    <!-- Add Voter Modal -->
+    <div id="AddModal" class="Modal">
+        <div class="Modal_Content">
+            <div class="Modal_Header">
+                <h2 class="Modal_Title">Add New Voter</h2>
+                <span class="Modal_Close" onclick="closeModal()">&times;</span>
+            </div>
+            <form action="../Logic/Backend/Add_Voter_Handler.php" method="POST">
+                <div class="Form_Group">
+                    <label class="Label">Email Address</label>
+                    <input type="email" name="email" class="Input" placeholder="voter@school.edu" required>
+                </div>
+                <div class="Form_Group" style="margin-top: 15px;">
+                    <label class="Label">User ID (Leave blank for random)</label>
+                    <input type="text" name="user_id" class="Input" placeholder="00-0000">
+                </div>
+                <div class="Form_Group" style="margin-top: 15px;">
+                    <label class="Label">Track / Strand</label>
+                    <input type="text" name="track" class="Input" placeholder="e.g. STEM" required>
+                </div>
+                <div class="Form_Group" style="margin-top: 15px;">
+                    <label class="Label">Grade Level</label>
+                    <select name="grade" class="Select" style="width: 100%; height: 50px;" required>
+                        <option value="11">Grade 11</option>
+                        <option value="12">Grade 12</option>
+                    </select>
+                </div>
+                <div class="Form_Group" style="margin-top: 15px;">
+                    <label class="Label">Section</label>
+                    <input type="text" name="section" class="Input" placeholder="e.g. A" required>
+                </div>
+                <div class="Form_Group" style="margin-top: 15px;">
+                    <label class="Label">Password (Leave blank for default)</label>
+                    <input type="password" name="password" class="Input" placeholder="Set password">
+                </div>
+                <button type="submit" class="Button_Primary" style="width: 100%; margin-top: 24px;">Save Voter</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() {
+            document.getElementById('AddModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('AddModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('AddModal')) {
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
